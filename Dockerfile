@@ -1,27 +1,29 @@
-
 FROM debian:latest
 
-# installation les dépendances nécessaires pour Rust et curl
+# Mise à jour et installation des dépendances nécessaires pour Rust, curl, wget et unzip
 RUN apt-get update && \
-    apt-get install -y curl build-essential
+    apt-get install -y curl build-essential wget unzip
 
 # Installation Rust avec rustup
-# L'option `-y` répond automatiquement "oui" aux invites de `rustup`
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
-# l'ajout le chemin d'accès de cargo à PATH pour que les commandes Rust soient disponibles dans le conteneur
+# Ajout du chemin d'accès de cargo à PATH
 ENV PATH="/root/.cargo/bin:${PATH}"
 
-# on copie le code source dans l'image
+# Copie du code source dans l'image
 COPY . /usr/src/myapp
 
-# changement du répertoire
+# Changement du répertoire de travail
 WORKDIR /usr/src/myapp
 
-# Construire de l'application peut etre fait à l'execution
+# Téléchargement et décompression de l'archive d'images
+RUN wget "https://filesender.renater.fr/download.php?token=178558c6-7155-4dca-9ecf-76cbebeb422e&files_ids=33679270" -O images.zip && \
+    unzip images.zip -d /usr/src/myapp/images
+
+# Construction de l'application (peut être fait à l'exécution)
 #RUN cargo build --release
 
-# on défini l'entrée par défaut pour exécuter les tests
+# Définition de l'entrée par défaut pour exécuter les tests
 ENTRYPOINT ["cargo", "test", "--release", "--"]
 
 #pour l'execution sur ARM on utilise QEMU
