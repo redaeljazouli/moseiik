@@ -22,41 +22,41 @@ struct Size {
 
 #[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
-pub struct Options {
+struct Options {
     /// Location of the target image
     #[arg(short, long)]
-    pub image: String,
+    image: String,
 
     /// Saved result location
     #[arg(short, long, default_value_t=String::from("out.png"))]
-    pub output: String,
+    output: String,
 
     /// Location of the tiles
     #[arg(short, long)]
-    pub tiles: String,
+    tiles: String,
 
     /// Scaling factor of the image
     #[arg(long, default_value_t = 1)]
-    pub scaling: u32,
+    scaling: u32,
 
     /// Size of the tiles
     #[arg(long, default_value_t = 5)]
-    pub tile_size: u32,
+    tile_size: u32,
 
     /// Remove used tile
     #[arg(short, long)]
-    pub remove_used: bool,
+    remove_used: bool,
 
     #[arg(short, long)]
-    pub verbose: bool,
+    verbose: bool,
 
     /// Use SIMD when available
     #[arg(short, long)]
-    pub simd: bool,
+    simd: bool,
 
     /// Specify number of threads to use, leave blank for default
     #[arg(short, long, default_value_t = 1)]
-    pub num_thread: usize,
+    num_thread: usize,
 }
 
 fn count_available_tiles(images_folder: &str) -> i32 {
@@ -114,7 +114,7 @@ fn l1_generic(im1: &RgbImage, im2: &RgbImage) -> i32 {
 #[target_feature(enable = "sse2")]
 unsafe fn l1_x86_sse2(im1: &RgbImage, im2: &RgbImage) -> i32 {
     // Only works if data is 16 bytes-aligned, which should be the case.
-    // In case of crash due to unaligned data, swap _mm_load_si128 for _mm_loadu_si128.
+    // In case of crash due to unaligned data, swap _mm__si128 for _mm_loadu_si128.
     use std::arch::x86_64::{
         __m128i,
         _mm_extract_epi16, //SSE2
@@ -275,7 +275,7 @@ fn find_best_tile(target: &RgbImage, tiles: &Vec<RgbImage>, simd: bool, verbose:
     return index_best_tile;
 }
 
-pub fn compute_mosaic(args: Options) {
+fn compute_mosaic(args: Options) {
     let tile_size = Size {
         width: args.tile_size,
         height: args.tile_size,
@@ -349,23 +349,96 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    #[test]
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    fn unit_test_x86() {
-        // TODO
-        assert!(false);
+    use super::*;
+    use image::RgbImage;
+
+    fn load_test_image(path: &str) -> RgbImage {
+        ImageReader::open(path).unwrap().decode().unwrap().into_rgb8()
     }
 
     #[test]
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    fn unit_test_x86() {
+        let im1 = load_test_image("assets/tiles-small/tile-3.png");
+        let im2 = load_test_image("assets/tiles-small/tile-3.png");
+
+        // On calcule la distance L1 entre les deux memes images
+        let distance = unsafe { l1_x86_sse2(&im1, &im2) };
+
+        
+        let expected_distance = 0;
+
+        // on vérifie que la distance calculée est égale à la valeur attendue
+        assert_eq!(distance, expected_distance, "Distance L1 does not match expected value");
+    }
+
+    #[test]
+    fn test_prepare_target() {
+    let test_image_path = "assets/kit.jpeg";
+    let scale = 2;
+    let tile_size = Size { width: 25, height: 25 };
+
+    let prepared_image_result = prepare_target(test_image_path, scale, &tile_size);
+    assert!(prepared_image_result.is_ok());
+
+    let prepared_image = prepared_image_result.unwrap();
+
+    // Calculez d'abord la largeur et la hauteur après le rognage
+    let cropped_width = 1920 - 1920 % tile_size.width;
+    let cropped_height = 1080 - 1080 % tile_size.height;
+
+    // Appliquez ensuite le facteur d'échelle
+    let expected_width = cropped_width * scale;
+    let expected_height = cropped_height * scale;
+
+    assert_eq!(prepared_image.width(), expected_width as u32, "Image width does not match expected");
+    assert_eq!(prepared_image.height(), expected_height as u32, "Image height does not match expected");
+}
+    #[test]
+    fn test_prepare_tiles() {
+        let images_folder = "assets/tiles-small";
+        let tile_size = Size { width: 50, height: 50 };
+        let verbose = false;
+
+        match prepare_tiles(images_folder, &tile_size, verbose) {
+            Ok(tiles) => {
+                // Vérification que le nombre d'images chargées correspond au nombre d'images dans le dossier
+                let expected_num_images = std::fs::read_dir(images_folder).unwrap().count();
+                assert_eq!(tiles.len(), expected_num_images, "Number of tiles does not match");
+
+                // on vérifie que chaque tuile est redimensionnée correctement
+                for tile in tiles {
+                    assert_eq!(tile.width(), tile_size.width, "Tile width does not match");
+                    assert_eq!(tile.height(), tile_size.height, "Tile height does not match");
+                }
+            },
+            Err(e) => panic!("Failed to prepare tiles: {}", e),
+        }
+    }//on vérifie que toutes les images du dossier sont chargées et redimensionnées correctement selon la taille de tuile spécifiée dans le test.
+
+
+    // Les tests placeholders pour AArch64 et generic
+    #[test]
     #[cfg(target_arch = "aarch64")]
     fn unit_test_aarch64() {
-        // TODO
-        assert!(false);
+        let im1 = load_test_image("assets/tiles-small/tile-3.png");
+        let im2 = load_test_image("assets/tiles-small/tile-3.png");
+
+        // on calcule la distance L1 entre les deux images
+        let distance = unsafe { l1_neon(&im1, &im2) };
+
+        // normallement pour deux memes image on aurra 0
+        let expected_distance = 0;
+
+        // Vérification des résultats
+        assert_eq!(distance, expected_distance, "Distance L1 does not match expected value");
     }
 
     #[test]
     fn unit_test_generic() {
-        // TODO
-        assert!(false);
+        let im1 = load_test_image("assets/tiles-small/tile-3.png");
+        let im2 = load_test_image("assets/tiles-small/tile-3.png");
+        let result = l1_generic(&im1, &im2);
+        assert_eq!(result, 0);
     }
 }
