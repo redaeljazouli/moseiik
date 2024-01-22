@@ -18,7 +18,7 @@ WORKDIR /usr/src/myapp
 
 # Téléchargement et décompression de l'archive d'images
 RUN wget "https://filesender.renater.fr/download.php?token=178558c6-7155-4dca-9ecf-76cbebeb422e&files_ids=33679270" -O images.zip && \
-    unzip images.zip -d /usr/src/myapp/images
+    unzip images.zip -d /usr/src/myapp/assets
 
 # Construction de l'application (peut être fait à l'exécution)
 #RUN cargo build --release
