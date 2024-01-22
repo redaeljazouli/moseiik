@@ -7,11 +7,15 @@ mod tests {
     #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
     fn test_x86() {
         // Regenerate the image with compute_mosaic
+        // Use the std::process::Command struct to run a command (in this case, "cargo")
         let output = Command::new("cargo")
+            // Specify the arguments for the cargo command
             .args(&["run", "--release", "--", "--image", "assets/kit.jpeg", "--tiles", "assets/images", "--output", "out.png", "--tile-size" , "25" ])
+            // Execute the command and capture its output
             .output()
+            // Handle any errors that may occur during command execution
             .expect("Failed to execute command");
-
+        // Assert that the command executed successfully (status code 0)
         assert!(output.status.success(), "Failed to execute compute_mosaic: {:?}", output);
 
         // Compare the generated image with the ground truth
