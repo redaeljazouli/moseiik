@@ -351,7 +351,7 @@ fn main() {
 mod tests {
     use super::*;
     use image::RgbImage;
-
+    //on s'en servira de cette fonction dans les tests pour loader les images
     fn load_test_image(path: &str) -> RgbImage {
         ImageReader::open(path).unwrap().decode().unwrap().into_rgb8()
     }
@@ -359,6 +359,7 @@ mod tests {
     #[test]
     #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
     fn unit_test_x86() {
+        
         let im1 = load_test_image("assets/tiles-small/tile-3.png");
         let im2 = load_test_image("assets/tiles-small/tile-3.png");
 
@@ -374,28 +375,30 @@ mod tests {
 
     #[test]
     fn test_prepare_target() {
+    //Chemin vers l'image de test et paramètres de la tuile
     let test_image_path = "assets/kit.jpeg";
     let scale = 2;
     let tile_size = Size { width: 25, height: 25 };
-
+    // Appel de la fonction `prepare_target` et vérification si le résultat est OK (pas d'erreur)
     let prepared_image_result = prepare_target(test_image_path, scale, &tile_size);
     assert!(prepared_image_result.is_ok());
-
+    // Déballage du résultat pour obtenir l'image préparée
     let prepared_image = prepared_image_result.unwrap();
 
-    // Calculez d'abord la largeur et la hauteur après le rognage
+    // On calcule d'abord la largeur et la hauteur après le rognage
     let cropped_width = 1920 - 1920 % tile_size.width;
     let cropped_height = 1080 - 1080 % tile_size.height;
 
-    // Appliquez ensuite le facteur d'échelle
+    // ensuite on applique le facteur d'échelle
     let expected_width = cropped_width * scale;
     let expected_height = cropped_height * scale;
-
-    assert_eq!(prepared_image.width(), expected_width as u32, "Image width does not match expected");
-    assert_eq!(prepared_image.height(), expected_height as u32, "Image height does not match expected");
+    //verification des dimensions de l'image préparée correspondant aux dimensions attendues
+    assert_eq!(prepared_image.width(), expected_width as u32, "image width does not match expected");
+    assert_eq!(prepared_image.height(), expected_height as u32, "image height does not match expected");
 }
     #[test]
     fn test_prepare_tiles() {
+        //on défini le path de nos tiles
         let images_folder = "assets/tiles-small";
         let tile_size = Size { width: 50, height: 50 };
         let verbose = false;
@@ -414,13 +417,14 @@ mod tests {
             },
             Err(e) => panic!("Failed to prepare tiles: {}", e),
         }
-    }//on vérifie que toutes les images du dossier sont chargées et redimensionnées correctement selon la taille de tuile spécifiée dans le test.
+    }//on vérifie que toutes les images du dossier sont chargées et redimensionnées correctement selon la taille de tuile que nous avons spécifiée dans le test.
 
 
     // Les tests placeholders pour AArch64 et generic
     #[test]
     #[cfg(target_arch = "aarch64")]
     fn unit_test_aarch64() {
+        //c'est le meme principe de la distance L1 entre deux images
         let im1 = load_test_image("assets/tiles-small/tile-3.png");
         let im2 = load_test_image("assets/tiles-small/tile-3.png");
 
@@ -431,11 +435,12 @@ mod tests {
         let expected_distance = 0;
 
         // Vérification des résultats
-        assert_eq!(distance, expected_distance, "Distance L1 does not match expected value");
+        assert_eq!(distance, expected_distance, "distance L1 does not match expected value");
     }
 
     #[test]
     fn unit_test_generic() {
+        //test de distance l1 generic
         let im1 = load_test_image("assets/tiles-small/tile-3.png");
         let im2 = load_test_image("assets/tiles-small/tile-3.png");
         let result = l1_generic(&im1, &im2);
