@@ -1,4 +1,4 @@
-# Projet Qualité Logiciel
+#  Qualité Logiciel
 
 Moseiik est un projet qui permet de générer des mosaïques d'images à partir d'un corpus de vignettes (appelées tiles) et d'une image de référence (appelée target).
 
